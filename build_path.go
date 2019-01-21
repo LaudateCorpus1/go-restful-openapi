@@ -14,6 +14,9 @@ import (
 // KeyOpenAPITags is a Metadata key for a restful Route
 const KeyOpenAPITags = "openapi.tags"
 
+// ExtensionPrefix is the only prefix accepted for VendorExtensible extension keys
+const ExtensionPrefix = "x-"
+
 func buildPaths(ws *restful.WebService, cfg Config) spec.Paths {
 	p := spec.Paths{Paths: map[string]spec.PathItem{}}
 	for _, each := range ws.Routes() {
@@ -107,6 +110,11 @@ func buildOperation(ws *restful.WebService, r restful.Route, patterns map[string
 	if len(o.Responses.StatusCodeResponses) == 0 {
 		o.Responses.StatusCodeResponses[200] = spec.Response{ResponseProps: spec.ResponseProps{Description: http.StatusText(http.StatusOK)}}
 	}
+	for key, val := range r.Extensions {
+		if strings.HasPrefix(key, ExtensionPrefix) {
+			o.VendorExtensible.AddExtension(key, val)
+		}
+	}
 	return o
 }
 
@@ -176,6 +184,12 @@ func buildParameter(r restful.Route, restfulParam *restful.Parameter, pattern st
 		}
 		p.Default = stringAutoType(param.DefaultValue)
 		p.Format = param.DataFormat
+	}
+
+	for key, val := range param.Extensions {
+		if strings.HasPrefix(key, ExtensionPrefix) {
+			p.VendorExtensible.AddExtension(key, val)
+		}
 	}
 
 	return p
