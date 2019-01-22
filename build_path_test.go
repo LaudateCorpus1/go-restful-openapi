@@ -290,3 +290,65 @@ func TestWritesPrimitive(t *testing.T) {
 		}
 	}
 }
+
+func TestExtensionsForRoute(t *testing.T) {
+	ws := new(restful.WebService)
+	rootPath := "/test/extensions"
+	ws.Path(rootPath)
+	ws.Consumes(restful.MIME_JSON)
+	ws.Produces(restful.MIME_JSON)
+
+	subPath := "/for/route"
+	extKey := "x-test-route"
+	extValue := "value"
+	ws.Route(ws.GET(subPath).Extension(extKey, extValue).To(dummy))
+
+	p := buildPaths(ws, Config{})
+
+	if pathItem, ok := p.Paths[rootPath+subPath]; !ok {
+		t.Error("invalid test setup as configured path item was not found")
+	} else {
+		if pathItem.Get == nil {
+			t.Error("invalid test setup as configured operation was not found")
+		}
+
+		if actualValue, ok := pathItem.Get.Extensions.GetString(extKey); !ok {
+			t.Error("failed to pass extension to spec operation")
+		} else if !strings.EqualFold(extValue, actualValue) {
+			t.Errorf("actual extension value[%s] did not equal expected[%s]", actualValue, extValue)
+		}
+	}
+}
+
+func TestExtensionsForParam(t *testing.T) {
+	ws := new(restful.WebService)
+	rootPath := "/test/extensions"
+	ws.Path(rootPath)
+	ws.Consumes(restful.MIME_JSON)
+	ws.Produces(restful.MIME_JSON)
+
+	subPath := "/for/param"
+	extKey := "x-test-param"
+	extValue := "value"
+	ws.Route(ws.GET(subPath).To(dummy).Param(ws.QueryParameter("param1", "parameter one").AddExtension(extKey, extValue)))
+
+	p := buildPaths(ws, Config{})
+
+	if pathItem, ok := p.Paths[rootPath+subPath]; !ok {
+		t.Error("invalid test setup as configured path item was not found")
+	} else {
+		if pathItem.Get == nil {
+			t.Error("invalid test setup as configured operation was not found")
+		}
+
+		if len(pathItem.Get.Parameters) != 1 {
+			t.Error("invalid test setup as configured parameter was not present")
+		}
+
+		if actualValue, ok := pathItem.Get.Parameters[0].Extensions.GetString(extKey); !ok {
+			t.Error("failed to pass extension to spec parameter")
+		} else if !strings.EqualFold(extValue, actualValue) {
+			t.Errorf("actual extension value[%s] did not equal expected[%s]", actualValue, extValue)
+		}
+	}
+}
