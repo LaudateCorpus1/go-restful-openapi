@@ -1,6 +1,7 @@
 package restfulspec
 
 import (
+	"strings"
 	"testing"
 
 	restful "github.com/emicklei/go-restful"
